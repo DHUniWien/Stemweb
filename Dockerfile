@@ -14,11 +14,6 @@ COPY docker-entrypoint.sh .
 COPY Stemweb Stemweb
 COPY Stemweb/requirements/requirements.txt requirements.txt
 
-#========= replace apt sources file and add public key =================
-RUN rm /etc/apt/sources.list
-COPY apt_sources.list /etc/apt/sources.list
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
-
 #======================== install tools ================================
 RUN apt-get update && apt-get -y install graphviz libgraphviz-dev pkg-config wget libffi-dev libssl-dev r-base-core curl vim tree python-dev httpie
 RUN pip install -U setuptools
