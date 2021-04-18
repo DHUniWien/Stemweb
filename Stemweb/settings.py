@@ -17,7 +17,7 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-ALLOWED_HOSTS = ['10.0.0.137', '10.0.0.192', 'localhost', '127.0.0.1', '10.0.228.35']
+ALLOWED_HOSTS = ls.allowed_hosts
 
 DATABASES = {
     'default': {
@@ -179,8 +179,8 @@ INSTALLED_APPS = (
 #BROKER_VHOST = "/"
 
 # celery  configurations 
-CELERY_BROKER_URL = 'redis://redis:6379'
-CELERY_RESULT_BACKEND = 'redis://redis:6379'
+CELERY_BROKER_URL = ls.redis_server
+CELERY_RESULT_BACKEND = ls.redis_server
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TASK_SERIALIZER = 'json'

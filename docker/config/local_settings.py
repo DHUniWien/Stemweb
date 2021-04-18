@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 
 # First copy this file as local_settings.py (into same folder) 
 # then add information of your own local database and 
@@ -11,6 +12,12 @@
 # IMPORTANT: DO NOT COMMIT lstrings.py INTO REPOSITORY
 # NOR DO NOT REMOVE lstring.py FROM .gitignore IN ANY
 # CIRCUMSTANCES. 
+
+# Hostnames that Stemweb should be serving from
+allowed_hosts = ['stemweb', 'localhost', '127.0.0.1']
+
+# Location of the Redis server for Stemweb
+redis_server = 'redis://redis:6379'
 
 # Local db admin name and email. Don't really need these
 # in local testing. But it's good to fill these, since
@@ -31,9 +38,9 @@ db_engine = 'django.db.backends.mysql'
 #db_name = '/home/stemweb/sqlite3db/stemweb_v1.db'
 db_name = 'stemwebdb_v1' 
 
-db_user = 'stemweb'            # Your db user. Not needed in sqlite3
-db_pwd = 'ChangeMe'             # Your db password. Not needed in sqlite3
-db_host = 'mysql'            # Host, leave blank if db is on local computer.
+db_user = 'stemweb'                 # Your db user. Not needed in sqlite3
+db_pwd = os.environ['MYSQL_PASSW']  # Your db password. Not needed in sqlite3
+db_host = 'mysql'           # Host, leave blank if db is on local computer.
 db_port = '3306'            # Port to your db. Can be left blank
 
 # name of your ROOT_URLCONF. Needs to be in here, because
@@ -42,7 +49,7 @@ db_port = '3306'            # Port to your db. Can be left blank
 root_urls = 'Stemweb.urls'
 
 # Veeerry secret key. Cannot be empty string.
-secret_key = 'ChangeMe'
+secret_key = 'ThisIsVewwySekrit'
 
 # Default email backend. For private use console will suffice, but for public use either
 # dummy or smtp.
