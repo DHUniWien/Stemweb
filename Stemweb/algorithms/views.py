@@ -249,14 +249,24 @@ def jobstatus(request, run_id):
 				msg['result'] = result
 				msg['end_time'] = str(algo_run.end_time)
 				return HttpResponse(json.dumps(msg, encoding = "utf8"))
+		if algo_run.status == STATUS_CODES['running']:
+			msg['result'] = "#### still running! #####"
+			return HttpResponse(json.dumps(msg, encoding = "utf8"))
 		if algo_run.status == STATUS_CODES['failure']:
 			msg['result'] = algo_run.error_msg  ### the result field shall contain the error info according to the white paper 
 			msg['end_time'] = str(algo_run.end_time) 
 			return HttpResponse(json.dumps(msg, encoding = "utf8"))
+		if algo_run.status == STATUS_CODES['not_started']:
+			msg['result'] = "the algorithm is/was not (yet) started"
+			return HttpResponse(json.dumps(msg, encoding = "utf8"))
+		else:
+			msg['result'] = "an unexpected status value is set"
+			return HttpResponse(json.dumps(msg, encoding = "utf8"))
+
+
 
 	
 def processtest(request):
-	#csv_file = "/Users/slinkola/STAM/data_sets/request4.json"
 	csv_file ="/home/stemweb/Stemweb/algorithm/fixtures/02_nj.json"	
 	csv = u""
 	import codecs
