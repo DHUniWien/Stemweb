@@ -8,9 +8,9 @@ Stemweb/media/javascript/jquery-1.7.1.js
 .DS_Store
 binarysankoff.so
 binarysankoff.dylib
-*/*/*/temp/
-*/*/temp/
-*/temp/
+**/.env
+**/temp/
+**/local_settings.py
 *.o
 *.so
 *.dylib
