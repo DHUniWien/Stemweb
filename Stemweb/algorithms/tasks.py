@@ -26,6 +26,9 @@ from celery.result import AsyncResult
 from celery.decorators import task
 from celery import shared_task
 
+from django.db import connections, connection
+from django.db.utils import OperationalError
+
 #from Stemweb.algorithms.settings import ALGORITHM_MEDIA_ROOT as algo_media_root ###   ImportError    ="=
 import Stemweb.algorithms.settings 
 
@@ -440,9 +443,27 @@ def external_algorithm_run_error(request, exc, traceback, run_id, return_host, r
 		- exc: exception / error text
 		- traceback: details about exception
 	'''
-	#print 'external algorithm run failed :-(( '
+	print '\n ############ external algorithm run failed :-(( #############\n'
 	from Stemweb.algorithms.models import AlgorithmRun
-	algorun = AlgorithmRun.objects.get(pk = run_id)
+	
+	try:
+		algorun = AlgorithmRun.objects.get(pk = run_id)		### django-DB connection can be lost after errors in RHM c-extension 
+	except OperationalError:
+		print '\n ############ close and restore damaged DB connections #############\n'
+		for conn in connections.all():
+			conn.close_if_unusable_or_obsolete()			### close damaged DB connections
+
+		#cursor = connection.cursor()	### Will result in: jango.db.utils.InterfaceError: connection already closed
+		
+		connection.cursor().execute('SELECT 1;')			### restore DB connections
+
+		### get object again from DB
+		algorun = AlgorithmRun.objects.get(pk = run_id)
+
+
+
+
+
 	if algorun.status == settings.STATUS_CODES['running']:
 		uuid = request.id ### the parent's task id
 		#print('Task {0} raised exception: {1!r}\n{2!r}'.format(uuid, exc, traceback))
@@ -549,6 +570,7 @@ def external_algorithm_run_finished(newick_result, run_id, return_host, return_p
 	algorun = AlgorithmRun.objects.get(pk = run_id)
 
 	res = ""
+	usedformat = ""
 	if algorun.status == settings.STATUS_CODES['failure']: # if failure status was set in njc.py then keep it  (not detectable during tasks execution level)
 		res = algorun.error_msg
 	else:	

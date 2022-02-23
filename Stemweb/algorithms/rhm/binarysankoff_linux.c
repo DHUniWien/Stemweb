@@ -1,3 +1,4 @@
+#include <Python.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,7 +9,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <zlib.h>
-#include <Python.h>
+#include <signal.h>
 
 //#define COPY_AND_REPLACE
 
@@ -1486,15 +1487,20 @@ PyObject* py_main(PyObject* self, PyObject* args)
  */
 static PyMethodDef binarysankoff_methods[] = {
 	{"main", py_main, METH_VARARGS},
-	{NULL, NULL}
+	{NULL, NULL, 0, NULL}        /* Sentinel */
 };
+
 
 /*
  *	Python needs this to init module.
  */
-void initbinarysankoff()
+PyMODINIT_FUNC
+initbinarysankoff(void)
 {
-	(void) Py_InitModule("binarysankoff", binarysankoff_methods);
-}
+    PyObject *m;
 
+    m = Py_InitModule("binarysankoff", binarysankoff_methods);
+    if (m == NULL)
+        return;
+}
 
