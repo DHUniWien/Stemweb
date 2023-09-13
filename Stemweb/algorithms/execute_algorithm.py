@@ -38,9 +38,9 @@ def local(form, algo_id, request):
 	
 	run_args = utils.build_local_args(form, algorithm_name = algorithm.name, request = request)
 	input_file = InputFile.objects.get(id = run_args['file_id'])
+	format_error = None
 	# =====================
 	if algo_id == '2': 		# RHM: algo_id = '2' ;   algorithm.file_extension = 'csv'
-		format_error = None
 		infile_path = run_args['infolder']			
 		with open(infile_path, 'r',  encoding = 'utf8') as f:
 			file_data = f.read()
