@@ -42,3 +42,5 @@ services:
             - ./client:/src/app
         ports:
             - "127.0.0.1:8001:8001"
+        profiles:
+            - testing
