@@ -197,9 +197,9 @@ def jobstatus(request, run_id):
 		algo_run = AlgorithmRun.objects.get_or_none(pk = run_id)
 		if algo_run is None or not algo_run.external: 		
 		#if algo_run is None: 						###  temporarily removed external check to enable access via REST-API (JSON) for test purpose
-			error_message = json.dumps({'error': "No external algorithm run with given id"})
+			error_message = json.dumps({'information': f"No algorithm run with jobid {run_id} is stored in the database"})
 			response = HttpResponse(error_message)
-			response.status_code = 400
+			response.status_code = 200
 			return response
 
 		# Construct basic response json
@@ -255,10 +255,13 @@ def jobstatus(request, run_id):
 				msg['end_time'] = str(algo_run.end_time)
 				#return HttpResponse(json.dumps(msg, encoding = "utf8"))
 				return HttpResponse(json.dumps(msg))
-		if algo_run.status == STATUS_CODES['failure']:
+		elif algo_run.status == STATUS_CODES['failure']:
 			msg['result'] = algo_run.error_msg  ### the result field shall contain the error info according to the white paper 
 			msg['end_time'] = str(algo_run.end_time) 
 			#return HttpResponse(json.dumps(msg, encoding = "utf8"))
+			return HttpResponse(json.dumps(msg))
+		elif algo_run.status == STATUS_CODES['running']:
+			msg['result'] = "The requested calculation is not yet finished"
 			return HttpResponse(json.dumps(msg))
 
 	
