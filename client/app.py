@@ -20,7 +20,7 @@ def receive_result():
     res = request.get_json()  # will return 400 if it isn't JSON
     runid = res['jobid']
     try:
-        with open('received/result-%d-%s.json' % (runid, date.today()), 'w') as f:
+        with open('responses/result_jobid-%d_%s.json' % (runid, date.today()), 'w') as f:
             f.write(json.dumps(res, ensure_ascii=False))
     except IOError as e:
         return('File write error: %s' % e.message, 500)
