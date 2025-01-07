@@ -5,7 +5,7 @@ import requests as req
 
 app = Flask(__name__)
 STEMWEB_BASE = 'http://stemweb:8000/algorithms'
-ALGO_MAP = {'01_rhm': 'RHM', '02_nj': 'Neighbour Joining', '03_nnet': 'Neighbour Net'}
+ALGO_MAP = {'01_rhm': 'RHM', '02_nj': 'Neighbour Joining', '02_nj_mtxnok': 'Neighbour Joining', '03_nnet': 'Neighbour Net'}
 
 # Check that we are up
 @app.get('/')
