@@ -26,8 +26,41 @@ from celery import signature
 from inspect import signature as signat
 from .reformat import re_format
 
+def validate_nexusmatrix(matrix_block):
+
+    rows = matrix_block.strip().split("\n")  # Split into lines
+    sequence_length = None
+    row_pattern = re.compile(r"^\s*(\S+)\s+([a-z?]+)\s*$", re.IGNORECASE)  # for taxon and sequence
+
+    for row in enumerate(rows):
+        match = row_pattern.match(row[1])
+        if not match:
+            errmsg = f"Invalid row structure: {row[1]}"
+            #print(errmsg)
+            return errmsg
+
+        _taxon, sequence = match.groups()
+
+        # Check sequence length consistency
+        if sequence_length is None:
+            sequence_length = len(sequence)  # Set the first sequence length
+            first_row = row
+        elif len(sequence) != sequence_length:
+            errmsg = f"Input data error: different sequence lengths in row 1 ({first_row[1]}) and in row {row[0] + 1} ({row[1]})" ### +1 because user starts counting with 1, not with 0
+            #print(errmsg)
+            return errmsg
+
+        # Check for invalid characters in sequence
+        if not re.match(r"^[a-z?]+$", sequence, re.IGNORECASE):
+            errmsg = f"Invalid characters in sequence: {sequence}"
+            #print(errmsg)
+            return errmsg
+
+    # All checks passed; Matrix block is well-formed
+    return True
+
 def local(form, algo_id, request):
-	''' Make a local algorithm run.
+	''' Make a local (=GUI based) algorithm run.
 	    Returns AlgorithmRun id.
 	'''
 	algorithm = get_object_or_404(Algorithm, pk = algo_id)
@@ -99,11 +132,9 @@ def local(form, algo_id, request):
 
 
 def external(json_data, algo_id, request):
-	''' Make external algorithm run for request that came from trusted ip.
-	
-	First creates the InputFile object of the request.POST's json's data and saves
-	it. Then executes the actual run.
-	
+	''' Make external (= via REST-API) algorithm run for request that came from trusted ip.
+	First create the InputFile object of the request.POST's json's data and save it. 
+	Then execute the actual run.
 	Returns AlgorithmRun id.
 	
 	TODO: Refactor me   #  PF: to be refactored in which way? -- intended by previous SW-developer of this module!
@@ -176,7 +207,7 @@ def external(json_data, algo_id, request):
 		file_dir = os.path.dirname(file_path)	                    ### '/home/stemweb/Stemweb/media/files/csv'
 		name_without_ext = os.path.splitext(os.path.basename(file_path))[0]	### '20210908-075706-BSQQ3HII'
 		multi_file_dir = os.path.join(file_dir, name_without_ext)	### '/home/stemweb/Stemweb/media/files/csv/20210908-075706-BSQQ3HII'
-		#print('##########RHM input path / multi_file_dir = ', multi_file_dir, '++++++++++++++++++++++++++')
+		#print('########## RHM input path / multi_file_dir = ', multi_file_dir, '++++++++++++++++++++++++++')
 		os.mkdir(multi_file_dir)
 		os.chdir(multi_file_dir)
 
@@ -187,8 +218,24 @@ def external(json_data, algo_id, request):
 				with open(key, mode = 'w', encoding = 'utf8') as fp:
 					json.dump(value, fp)
 		except:
-			print ("\n######### could not write input file:", key, " +++++++++++++++++++\n")
-			#pass
+			#print ("\n######### could not write input file:", key, " +++++++++++++++++++\n")
+			format_error = f"Could not write input file {key}"
+
+	else:   ### check input data format for NJ and NN:
+		with open(input_file.file.path, "r") as file:
+			content = file.read()
+		# matrix_match = re.search(r"MATRIX\s+(.*?);\s+END;", content, re.DOTALL | re.IGNORECASE)  ### for multi-line content
+		matrix_match = re.search(r"MATRIX\n(.*?);", content, re.DOTALL | re.IGNORECASE)  ### for single line content
+		if matrix_match:
+			matrix = matrix_match.group(1)
+			#print(f"Extracted Matrix Block:\n {matrix}")
+			validate_res = validate_nexusmatrix(matrix)
+			if validate_res != True:
+				#print(validate_res)
+				format_error = validate_res
+		else:
+			format_error ="Input data format error: MATRIX block not found"
+			#print(format_error)
 
 	parameters = json_data['parameters']
 
