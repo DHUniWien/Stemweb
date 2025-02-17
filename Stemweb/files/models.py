@@ -26,6 +26,9 @@ class InputFile(models.Model):
 	file = models.FileField(upload_to = utils.upload_path)
 	external = models.BooleanField(default = False)
 
+	def delete(self):   ###  delete meta data in database
+		models.Model.delete(self)
+
 	class Meta:
 		ordering = ['name', 'extension', '-last_access']
 

@@ -190,9 +190,10 @@ INCLUDE=['Stemweb.algorithms.tasks']
 ACCOUNT_ACTIVATION_DAYS = 99
 LOGIN_REDIRECT_URL = '/'
 
-# number of days the results shall be kept as files and the meta infos shall be kept in DB
+# number of days the inputs & results shall be kept as files and the meta infos shall be kept in DB
 # used to prevent filling the file system and the database
 KEEP_RESULTS_DAYS = 60
+KEEP_INPUTS_DAYS = 60
 
 # Email backend
 EMAIL_BACKEND = ls.email_backend

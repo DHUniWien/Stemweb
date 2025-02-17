@@ -165,8 +165,8 @@ class AlgorithmRun(models.Model):
 		start_time	: When run was started. Basically the time when this instance
 					  was created.
 		
-		end_time	: When run ended. This can mean either that run was stopped
-					  by user or it ended normally (converged or not).
+		end_time	: When run ended. Calculation is finished or it failed.
+					  [run stopped by user is Not yet implemented].
 		
 		finished	: Is the run finished already. For quick checking.
 		
@@ -176,8 +176,7 @@ class AlgorithmRun(models.Model):
 		input_file	: Input file used for this run if the run is not external. 
 					  Foreign key to InputFile-model.
 					  
-		folder		: Absolute path to folder where results are, if run is not
-					  external. Max length 200.
+		folder : Absolute path to folder where results are. Max length 200.
 		
 		image		: Image of this run's resulting graph of best scored 
 					  network structure (if available).
@@ -202,9 +201,6 @@ class AlgorithmRun(models.Model):
 		
 		error_msg   : error message (exception, [also traceback wanted?]) if it exists; else this is empty
 
-		
-	  
-		ProbablyTODO: change images and folder to be in the results, probably.  
 	'''
 	start_time = models.DateTimeField(auto_now_add = True)
 	end_time = models.DateTimeField(auto_now_add = False, null = True)
@@ -221,34 +217,33 @@ class AlgorithmRun(models.Model):
 	ip = models.GenericIPAddressField(null = True)
 	extras = models.CharField(max_length = 10000, blank = True)
 	error_msg = models.CharField(max_length = 10000, blank = True, default = '')
-		
-	# Really we will be wanting to have this as PickleField.
-	#results = dict()
-	
+	finished = models.BooleanField(default = False)
+
 	def delete(self):
 		'''	
-			Deletes all the run's results from hard drive so that there are no
-			files in users/-subfolders with zero links to them in database.
+			Deletes this run's results from hard drive so that there are no files in 
+			/home/stemweb/Stemweb/media/results/runs/ sub directories and no entry in the database.
 		'''
 		
-		# TODO: we need to first check that run has been finished before any
-		# deleting can be done.
-		try:
-			for root, dirs, files in os.walk(self.folder):
-				for f in files:
-					os.remove(os.path.join(root, f))
-				for d in dirs:
-					shutil.rmtree(os.path.join(root, d))
-			os.rmdir(root)
-		except:
-			# If there is an exception, log it (and probably inform admins about 
-			# it), but still delete run for end users convenience.
-			logger = logging.getLogger('stemweb.algorithm_run')
-			logger.error('AlgorithmRun could not delete files: %s:%s folder:%s' \
-				% (self.algorithm.name, self.id, self.folder))
+		# first check that the run has been finished before any deleting can be done:
+		if self.finished:
+			#	print(f"### run {self.id} is FINISHED; result files and DB entries can be deleted ###################")
+			try:
+				for root, dirs, files in os.walk(self.folder): ### e.g.: self.folder: /home/stemweb/Stemweb/media/results/runs/neighbour-net/6/38Y1GN84
+					for f in files:
+						os.remove(os.path.join(root, f))
+					for d in dirs:
+						shutil.rmtree(os.path.join(root, d))
+				#os.rmdir(root)
+			except:
+				# If there is an exception, log it (and probably inform admins about 
+				# it), but still delete run for end users convenience.
+				logger = logging.getLogger('stemweb.algorithm_run')
+				logger.error('AlgorithmRun could not delete files: %s:%s folder:%s' \
+					% (self.algorithm.name, self.id, self.folder))
 
-		# delete meta data in database:	
-		models.Model.delete(self)
+			# delete meta data in database:	
+			models.Model.delete(self)
 	
 	def __str__(self):
 		retval = ''

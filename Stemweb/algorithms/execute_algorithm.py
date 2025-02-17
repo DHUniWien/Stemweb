@@ -9,7 +9,7 @@ import codecs
 import json
 import csv
 import re
-from .cleanup import remove_old_results_db, remove_old_results_fs
+from .cleanup import remove_oldresults_db, remove_oldinputs_db, remove_oldresults_fs, remove_oldinputs_fs
 
 from django.shortcuts import get_object_or_404
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -25,6 +25,8 @@ from celery import task, shared_task, Task
 from celery import signature
 from inspect import signature as signat
 from .reformat import re_format
+from copy import deepcopy
+from pathlib import Path
 
 def validate_nexusmatrix(matrix_block):
 
@@ -65,10 +67,13 @@ def local(form, algo_id, request):
 	'''
 	algorithm = get_object_or_404(Algorithm, pk = algo_id)
 
-	# remove outdated results in file system and in database compared with value in settings.KEEP_RESULTS_DAYS
-	remove_old_results_fs()
-	remove_old_results_db()
-	
+	# remove outdated results in database and in file system compared with value in settings.KEEP_RESULTS_DAYS
+	remove_oldresults_db()
+	remove_oldresults_fs()
+	# remove outdated inputs in file system and in database compared with value in settings.KEEP_INPUTS_DAYS
+	remove_oldinputs_db()
+	remove_oldinputs_fs()
+
 	run_args = utils.build_local_args(form, algorithm_name = algorithm.name, request = request)
 	input_file = InputFile.objects.get(id = run_args['file_id'])
 	format_error = None
@@ -148,10 +153,15 @@ def external(json_data, algo_id, request):
 	#print (algo_id)
 	#print (request)
 	#print('++++++++++++++++++++++++++++++++++++++++')	
-	
-	# remove outdated results in file system and in database compared with value in settings.KEEP_RESULTS_DAYS
-	remove_old_results_fs()
-	remove_old_results_db()
+
+	algoid_shortname_dict = {'2': 'rhm', '3': 'nj', '4': 'nnet'}
+
+	# remove outdated results in database and in file system compared with value in settings.KEEP_RESULTS_DAYS
+	remove_oldresults_db()
+	remove_oldresults_fs()
+	# remove outdated inputs in database and in file system compared with value in settings.KEEP_INPUTS_DAYS
+	remove_oldinputs_db()
+	remove_oldinputs_fs()
 
 	return_host = json_data['return_host']
 	return_path = json_data['return_path']
@@ -165,6 +175,7 @@ def external(json_data, algo_id, request):
 	format_error = None
 	if algo_id == '2':	# RHM: algo_id = '2' ;   algorithm.file_extension = 'csv'
 		file_data = json_data.pop('data')	
+		orig_inputdata = deepcopy(file_data)
 		if isinstance(file_data, dict):		##### e.g.:   {'Aq': 'das', 'B': 'ist ', 'Di': 'jetzt', 'Ge': 'nur', 'Id': 'mal', 'J': 'ein', 'Ju': 'ganz', 'Ki': 'simpler', 'Ory': 'und', 'Oy': 'sehr', 'U': 'kurzer', 'Vo': 'Text'}
 			structured_data = json.dumps(file_data)    ### later f.write() needs string instead of dict
 		else:		#### old input data format as a single string including line feeds and (tabs as field separators)
@@ -178,9 +189,10 @@ def external(json_data, algo_id, request):
 		ext = ".csv"
 	elif algorithm.file_extension == 'nex':  	# Neighbour Joining or Neighbour Net
 		from .csvtonexus import csv2nex
-		structured_data = csv2nex(json_data.pop('data'))
+		orig_inputdata = json_data.pop('data')
+		structured_data = csv2nex(orig_inputdata)
 		ext = ".nex"
-		
+
 	with open(csv_file.name, mode = 'w', encoding = 'utf8') as f:
 		f.write(structured_data)
 
@@ -190,8 +202,9 @@ def external(json_data, algo_id, request):
 	# Construct a mock up InMemoryUploadedFile from it for the InputFile
 	mock_file = None
 	input_file_id = None
+	unique_name =  datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + utils.id_generator()
 	with open(csv_file.name, "r") as f:
-		name =  datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + utils.id_generator() + ext
+		name =  unique_name + ext
 		mock_file = InMemoryUploadedFile(file = f, field_name = 'file', name = name, \
 									content_type = 'utf8', size = os.path.getsize(csv_file.name), charset = 'utf-8')	
 			
@@ -201,6 +214,12 @@ def external(json_data, algo_id, request):
 		input_file_id = input_file.id
 	
 	input_file = InputFile.objects.get(pk = input_file_id)
+
+	originputdata_dir = Path("/home/stemweb/Stemweb/media/files/originalInputData/")
+	originputdata_dir.mkdir(parents=True, exist_ok=True)
+	orig_inputdata_file = os.path.join(originputdata_dir, unique_name + '_' + algoid_shortname_dict[algo_id])
+	with open(orig_inputdata_file, mode = 'w', encoding = 'utf8') as fp:
+			json.dump(orig_inputdata, fp)
 
 	if (algo_id == '2' and format_error == None):	# ONLY for RHM: split content to multiple input files (new input format for new RHM.c version 2018 of Teem Roos))
 		file_path = os.path.join(algo_root, input_file.file.path)	### '/home/stemweb/Stemweb/media/files/csv/20210908-075706-BSQQ3HII.csv'
