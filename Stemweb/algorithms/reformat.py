@@ -1,6 +1,6 @@
 #!/usr/bin/python
-import string
 import csv
+from io import StringIO
 
 
 def re_format(input_data):
@@ -26,7 +26,8 @@ def re_format(input_data):
 	'''
 
 	data_dict = {}
-	read_tsv = csv.DictReader(input_data.split('\n'), delimiter='\t')	### TSV-parsing
+	data_fh = StringIO(input_data)
+	read_tsv = csv.DictReader(data_fh, delimiter='\t')	### TSV-parsing
 	taxas = read_tsv.fieldnames
 	number_of_taxas = len(taxas)
 	data_dict=dict.fromkeys(taxas, "")	### initialze keys in data_dict from taxas; init all values with ""

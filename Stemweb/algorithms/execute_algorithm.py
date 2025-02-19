@@ -5,9 +5,7 @@ import os
 from datetime import datetime
 from time import sleep
 import tempfile
-import codecs
 import json
-import csv
 import re
 from .cleanup import remove_oldresults_db, remove_oldinputs_db, remove_oldresults_fs, remove_oldinputs_fs
 

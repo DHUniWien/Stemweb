@@ -5,7 +5,13 @@ import requests as req
 
 app = Flask(__name__)
 STEMWEB_BASE = 'http://stemweb:8000/algorithms'
-ALGO_MAP = {'01_rhm': 'RHM', '02_nj': 'Neighbour Joining', '02_nj_mtxnok': 'Neighbour Joining', '03_nnet': 'Neighbour Net'}
+ALGO_MAP = {'01_rhm': 'RHM', 
+            '02_nj': 'Neighbour Joining', 
+            '02_nj_mtxnok': 'Neighbour Joining', 
+            '03_nnet': 'Neighbour Net',
+            '04_do_rhm': 'RHM',
+            '05_do_nj': 'Neighbour Joining'
+            }
 
 # Check that we are up
 @app.get('/')
@@ -40,8 +46,11 @@ def make_fixture_request(fixid):
     '''Send the content of the appropriate request to the Stemweb server'''
     fixfile = 'requests/%s.json' % fixid
     app.logger.debug('Got fixture file %s' % fixfile)
-    algo = [x for x in _get_available() 
-            if x['model'] == 'algorithms.algorithm' and x['fields']['name'] == ALGO_MAP[fixid]]
+    try:
+        algo = [x for x in _get_available() 
+                if x['model'] == 'algorithms.algorithm' and x['fields']['name'] == ALGO_MAP[fixid]]
+    except KeyError as ex:
+        return(f'ERROR: key {ex} not defined')
     if len(algo) != 1:
         return('ERROR: algorithm for %s not singled out!' % fixid, 400)
     thisalg = algo[0]
