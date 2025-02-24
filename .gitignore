@@ -6,14 +6,13 @@ Stemweb/media/users/
 Stemweb/media/external/
 Stemweb/media/javascript/jquery-1.7.1.js
 client/received/
+client/responses/
 client/venv/
 *.db
 .DS_Store
 binarysankoff.so
 binarysankoff.dylib
-*/*/*/temp/
-*/*/temp/
-*/temp/
+**/temp/
 *.o
 *.so
 *.dylib
@@ -22,4 +21,4 @@ tmp.gz
 notes_for_stemmawed.txt
 lsettings.py
 vsc_config/
-Stemweb/.vscode
+**/.vscode
