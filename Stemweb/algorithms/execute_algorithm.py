@@ -135,7 +135,7 @@ def local(form, algo_id, request):
 
 
 def external(json_data, algo_id, request):
-	''' Make external (= via REST-API) algorithm run for request that came from trusted ip.
+	''' Make external (= via REST-API) algorithm run for request.
 	First create the InputFile object of the request.POST's json's data and save it. 
 	Then execute the actual run.
 	Returns AlgorithmRun id.
@@ -238,7 +238,7 @@ def external(json_data, algo_id, request):
 			#print ("\n######### could not write input file:", key, " +++++++++++++++++++\n")
 			format_error = f"Could not write input file {key}"
 
-	else:   ### check input data format for NJ and NN:
+	elif (algo_id == '3' or algo_id == '4'):   ### check input data format for NJ and NN:
 		with open(input_file.file.path, "r") as file:
 			content = file.read()
 		# matrix_match = re.search(r"MATRIX\s+(.*?);\s+END;", content, re.DOTALL | re.IGNORECASE)  ### for multi-line content
