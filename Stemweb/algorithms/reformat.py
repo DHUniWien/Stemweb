@@ -27,6 +27,13 @@ def re_format(input_data):
 
 	data_dict = {}
 	data_fh = StringIO(input_data)
+	sample = data_fh.read(1024)  # Read a sample to detect delimiter
+	data_fh.seek(0)
+	sniffer = csv.Sniffer()
+	detected_delimiter = sniffer.sniff(sample).delimiter
+	if (detected_delimiter != '\t'):
+		expt = f"format error: Expected delimiter '\t', but detected '{detected_delimiter}'"
+		return expt
 	read_tsv = csv.DictReader(data_fh, delimiter='\t')	### TSV-parsing
 	taxas = read_tsv.fieldnames
 	number_of_taxas = len(taxas)
