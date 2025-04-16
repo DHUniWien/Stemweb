@@ -159,20 +159,12 @@ def process(request, algo_id):
 			return response
 		else:
 			# JSON ok, will process the algorithm
-			run_id = execute_algorithm.external(json_data, algo_id, request)   # status will be set to "running" , except for RHM algorithm where it stays in "not_started"
+			run_id = execute_algorithm.external(json_data, algo_id, request)
 			run = get_object_or_404(AlgorithmRun, id = run_id)
-
-			if (run.status == STATUS_CODES['not_started']) and (algo_id == 2):	# algo_id 2: RHM algorithm
-				# WORKAROUND: set status to "running" even if it is in state "not_started"
-				# otherwise RHM algorithm-run would be set to "running " too late (i.e. after running/calculation is finished)
-				run.status = statcode = STATUS_CODES['running']
-				run.save()	    # save status also in object/DB; then it's visible in the django GUI as well
-			else:
-				statcode = run.status
 
 			message = json.dumps({
 								'jobid': run_id,
-								'status': statcode
+								'status': run.status
 								})
 			response = HttpResponse(message)
 			response.status_code = 200		
@@ -263,6 +255,13 @@ def jobstatus(request, run_id):
 			return HttpResponse(json.dumps(msg))
 		elif algo_run.status == STATUS_CODES['running']:
 			msg['result'] = "The requested calculation is not yet finished"
+			return HttpResponse(json.dumps(msg))
+		elif algo_run.status == STATUS_CODES['not_started']:
+			msg['result'] = "The requested calculation is not yet started"
+			return HttpResponse(json.dumps(msg))
+		else:
+			logging.warn(f'################# Unknown algo_run.status {algo_run.status}')
+			msg['result'] = f"Unknown algo_run.status {algo_run.status}"
 			return HttpResponse(json.dumps(msg))
 
 	

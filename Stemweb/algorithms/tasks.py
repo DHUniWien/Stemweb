@@ -294,11 +294,12 @@ class AlgorithmTask(Task):
 										args = (self.run_args,), 
 										name = 'stemweb_algorun')
 		
-		self._algorithm_thread.start()		## here class NJ(AlgorithmTask)  in  njc.py is called
-		self.algorithm_run.status = settings.STATUS_CODES['running']
+		self.algorithm_run.status = settings.STATUS_CODES['running'] # need to set it BEFORE the actual start, otherwise it would be too late for the C-extension RHM
+		self.algorithm_run.save(update_fields=['status'])
+		self._algorithm_thread.start()		## here class NJ(AlgorithmTask)  in  njc.py is called  (... and likewise for nnet and RHM)
 		logging.info('I am running NOW as thread')
+		
 		#raise Exception("ERROR: this is an INTENDED test case exception from AlgorithmTask level ")   ### a manual test case 
-		self.algorithm_run.save()			## here again class NJ(AlgorithmTask)  in  njc.py is called
 		
 		# TODO: Fix me st000pid busy wait.  #### INSERTED BY PREVIOUS DEVELOPER
 		while self._stop.value == 0:
@@ -306,7 +307,7 @@ class AlgorithmTask(Task):
 			self._read_from_results_()	
 
 		self._finalize_()		##  status can be being set either to 'finished' or to 'failure'
-		if self.algorithm_run.status == settings.STATUS_CODES['failure']:			### failure status was set during inherited classtask (e.g.: njc algorithm run)
+		if self.algorithm_run.status == settings.STATUS_CODES['failure']:	### failure status was set during inherited classtask (e.g.: njc algorithm run)
 			request = exc = traceback = ''
 			algorun_extras_dictionary = json.loads(self.algorithm_run.extras)   ###  algorun.extras is of type unicode-string
 			return_host = algorun_extras_dictionary["return_host"]
