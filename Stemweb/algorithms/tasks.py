@@ -580,17 +580,21 @@ def external_algorithm_run_finished(*args, run_id=None, return_host=None, return
 			'format': usedformat
 			}	
 	
-	# Does the return host have a schema defined?
 	targeturl = return_host + return_path
-	EXPLICIT_SCHEMA = return_host.startswith('https://') or return_host.startswith('http://')
-	if EXPLICIT_SCHEMA:
-		r = requests.post(targeturl, json=ret)
+	if targeturl == "client:8001/result":   ##  if targeturl is the development testing client
+		## we want to avoid a "Bad request version"-message on client side, hence don't try https-schema, but just use http-schema
+		r = requests.post('http://%s' % targeturl, json=ret)
 	else:
-		# We will have to try both
-		try:
-			r = requests.post('https://%s' % targeturl, json=ret)
-		except SSLError:
-			r = requests.post('http://%s' % targeturl, json=ret)
+		# Does the return host have a schema defined?
+		EXPLICIT_SCHEMA = return_host.startswith('https://') or return_host.startswith('http://')
+		if EXPLICIT_SCHEMA:
+			r = requests.post(targeturl, json=ret)
+		else:
+			# We will have to try both
+			try:
+				r = requests.post('https://%s' % targeturl, json=ret)
+			except SSLError:
+				r = requests.post('http://%s' % targeturl, json=ret)
 
 	try: 
 		r.raise_for_status()
