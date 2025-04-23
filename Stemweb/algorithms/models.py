@@ -211,12 +211,12 @@ class AlgorithmRun(models.Model):
 	image = models.ImageField(upload_to = folder, null = True) 
 	score = models.FloatField(null = True, verbose_name = "Score")
 	current_iteration = models.PositiveIntegerField(null = True)
-	newick = models.URLField(blank = True, default = '')     ### ToCheck: shouldn't it be a CharField ?!
-	nwresult_path = models.CharField(max_length = 10000, blank = True, default = '')
+	newick = models.CharField(max_length = 5000, blank = True, default = '')
+	nwresult_path = models.CharField(max_length = 5000, blank = True, default = '')
 	external = models.BooleanField(default = False)
 	ip = models.GenericIPAddressField(null = True)
-	extras = models.CharField(max_length = 10000, blank = True)
-	error_msg = models.CharField(max_length = 10000, blank = True, default = '')
+	extras = models.TextField(blank = True)
+	error_msg = models.TextField(blank = True, default = '')
 	finished = models.BooleanField(default = False)
 
 	def delete(self):

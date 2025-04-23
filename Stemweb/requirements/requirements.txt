@@ -1,17 +1,15 @@
-Django<4.0
+Django
 Pillow-PIL
 networkx
-celery<5.0,>=4.3.0
+celery
 kombu
 redis
 numpy
 matplotlib
 scipy
-importlib-metadata==4.13.0
+importlib-metadata
 requests
 
 # For drawing newicks
-#biopython>=1.62
-#biopython<=1.76
 biopython
 

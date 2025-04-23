@@ -1,6 +1,7 @@
 services:
     mysql:
-        image: "mariadb:10.4"
+        # latest LTS version
+        image: "mariadb:11.4"
         restart: always
         environment:
             MYSQL_PASSWORD: "${STEMWEB_DBPASS}"

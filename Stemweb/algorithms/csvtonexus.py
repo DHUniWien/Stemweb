@@ -3,7 +3,8 @@ import csv
 import string
 from io import StringIO
 
-chars = list(string.ascii_letters) + list(string.digits) + [x for x in string.punctuation if x is not '?']
+#chars = list(string.ascii_letters) + list(string.digits) + [x for x in string.punctuation if x is not '?']
+chars = list(string.ascii_letters) + list(string.digits) + [x for x in string.punctuation if x != '?']
 
 def csv2nex(csv_data):
         ''' Convert given csv file to nexus format.

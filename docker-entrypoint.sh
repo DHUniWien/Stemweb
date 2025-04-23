@@ -28,8 +28,10 @@ python manage.py loaddata Stemweb/files/files.json
 
 # Start celery worker
 echo "######### Starting Celery worker #########"
-#celery -A Stemweb worker --loglevel=DEBUG --config=settings &
-celery -A Stemweb worker --config=settings &
+#celery -A Stemweb worker --config=settings &	### The --config option for the CLI was removed in Celery 5.2. 
+						### Set the CELERY_CONFIG_MODULE environment variable instead.
+export CELERY_CONFIG_MODULE=settings	### in the django settings
+celery -A Stemweb worker &
 
 # Start Django server
 echo "######### Starting Django server #########"

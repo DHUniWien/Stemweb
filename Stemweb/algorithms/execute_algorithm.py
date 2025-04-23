@@ -19,7 +19,7 @@ from .settings import ALGORITHM_MEDIA_ROOT as algo_root
 from Stemweb.algorithms.models import InputFile, Algorithm, AlgorithmRun
 from . import utils
 from . import settings
-from celery import task, shared_task, Task
+from celery import shared_task, Task
 from celery import signature
 from inspect import signature as signat
 from .reformat import re_format

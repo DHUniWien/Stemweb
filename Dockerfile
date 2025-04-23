@@ -1,6 +1,6 @@
-# install everything based on image "python:3.7"
+# install everything based on image "python:3.13"
 
-FROM python:3.7
+FROM python:3.13
 ENV DEBIAN_FRONTEND=noninteractive
 
 #========== create the technical user "stemweb" with sudo-right  =======
@@ -57,8 +57,6 @@ RUN mkdir Stemweb/logs && chown -R stemweb:stemweb .
 #====================== start the server ===============================
 # EXPOSE port 3000 for debugging access from outside of the docker container,
 # EXPOSE port 8000 for the web site
-# EXPOSE port 51000 as fixed http-request outbound src-port
-#EXPOSE 3000 8000 51000
 EXPOSE 8000 
 USER stemweb
 ENTRYPOINT ["./docker-entrypoint.sh"]

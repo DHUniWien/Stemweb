@@ -293,7 +293,6 @@ class AlgorithmTask(Task):
 		self._algorithm_thread = th.Thread(target = self.__algorithm__, 
 										args = (self.run_args,), 
 										name = 'stemweb_algorun')
-		
 		self.algorithm_run.status = settings.STATUS_CODES['running'] # need to set it BEFORE the actual start, otherwise it would be too late for the C-extension RHM
 		self.algorithm_run.save(update_fields=['status'])
 		self._algorithm_thread.start()		## here class NJ(AlgorithmTask)  in  njc.py is called  (... and likewise for nnet and RHM)
@@ -303,7 +302,7 @@ class AlgorithmTask(Task):
 		
 		# TODO: Fix me st000pid busy wait.  #### INSERTED BY PREVIOUS DEVELOPER
 		while self._stop.value == 0:
-			if not self._algorithm_thread.isAlive(): break
+			if not self._algorithm_thread.is_alive(): break
 			self._read_from_results_()	
 
 		self._finalize_()		##  status can be being set either to 'finished' or to 'failure'
