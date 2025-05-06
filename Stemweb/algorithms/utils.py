@@ -63,7 +63,7 @@ def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
 	return ''.join(random.choice(chars) for x in range(size))
 
 
-def __build_run_folder__(input_file_id, algorithm_name):
+def __build_run_folder__(input_file_id, algorithm_name, unique_id):
 	''' Builds unique path for algorithm run's result folder. Does not create
 		the folder.
 
@@ -77,20 +77,22 @@ def __build_run_folder__(input_file_id, algorithm_name):
 
 	'''
 	uppath = os.path.join('results')
-	#uppath = os.path.join(uppath)
 	uppath = os.path.join(uppath, 'runs')
 	uppath = os.path.join(uppath, slugify(algorithm_name))
 	uppath = os.path.join(uppath, '%s' % input_file_id)
-	uppath = os.path.join(uppath, id_generator())
+	if unique_id == None:
+		uppath = os.path.join(uppath, id_generator())
+	else:
+		uppath = os.path.join(uppath, unique_id)
 	return uppath
 
 
-def create_run_folder(input_file_id, algorithm_name):
+def create_run_folder(input_file_id, algorithm_name, unique_id):
 	''' Create unique folder for algorithm run's results.
 	    Returns folder url for the run, join this path with MEDIA_ROOT to get
 	    absolute path of the folder.
 	'''
-	folder_url = __build_run_folder__(input_file_id, algorithm_name)
+	folder_url = __build_run_folder__(input_file_id, algorithm_name, unique_id)
 	abs_folder = os.path.join(algo_media, folder_url)
 	try:
 		os.makedirs(abs_folder)
@@ -125,13 +127,12 @@ def build_local_args(form = None, algorithm_name = None, request = None):
 
 
 def build_external_args(parameters, input_file_key, input_file, \
-					algorithm_name = None):
+					algorithm_name = None, unique_id = None):
 	run_args = {}
 	for key, value in list(parameters.items()):
 		run_args[key] = value
 	run_args[input_file_key] = input_file.file.path
-	#run_args['folder_url'] = create_run_folder(None, input_file.id, algorithm_name)
-	run_args['folder_url'] = create_run_folder(input_file.id, algorithm_name)  ### e.g.: run_args['folder_url']: 'results/runs/rhm/5/WO1FG7GE'
+	run_args['folder_url'] = create_run_folder(input_file.id, algorithm_name, unique_id)  ### e.g.: run_args['folder_url']: 'results/runs/rhm/5/WO1FG7GE'
 	return run_args
 
 

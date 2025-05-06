@@ -200,7 +200,8 @@ def external(json_data, algo_id, request):
 	# Construct a mock up InMemoryUploadedFile from it for the InputFile
 	mock_file = None
 	input_file_id = None
-	unique_name =  datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + utils.id_generator()
+	unique_id = utils.id_generator()
+	unique_name =  datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + unique_id
 	with open(csv_file.name, "r") as f:
 		name =  unique_name + ext
 		mock_file = InMemoryUploadedFile(file = f, field_name = 'file', name = name, \
@@ -264,7 +265,7 @@ def external(json_data, algo_id, request):
 			input_file_key = arg.key
 		
 	run_args = utils.build_external_args(parameters, input_file_key, input_file,
-			algorithm_name = algorithm.name)
+			algorithm_name = algorithm.name, unique_id = unique_id)
 
 
 
