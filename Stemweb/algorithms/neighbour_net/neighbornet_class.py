@@ -385,7 +385,12 @@ class NN(AlgorithmTask):
 		
 
 		# create a dictionary in a node-link format that is suitable for JSON serialization
-		graph_dict = json_graph.node_link_data(G)
+		graph_dict = json_graph.node_link_data(G, edges="links")
+		# /usr/local/lib/python3.13/site-packages/networkx/readwrite/json_graph/node_link.py:142: FutureWarning:
+		# The default value will be `edges="edges" in NetworkX 3.6.   [current networkx version is 3.4.2]
+		# To make this warning go away, explicitly set the edges kwarg, e.g.:
+		#		nx.node_link_data(G, edges="links") to preserve current behavior, or
+		#		nx.node_link_data(G, edges="edges") for forward compatibility.
 
 		# add the positions and labels dictionaries
 		graph_dict ["positions"] = pos
