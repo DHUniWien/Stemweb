@@ -124,7 +124,7 @@
     	"fields": {
       		"name": "Neighbour Net",
       		"source": "No source currently available.",
-      		"desc": "Neighbour Net algorithm",
+      		"desc": "Neighbor-Net is a distance based method for constructing phylogenetic networks that is based on the Neighbor-Joining (NJ) algorithm of Saitou and Nei.It is a network construction AND data representation method that combines aspects of the neighbor joining (NJ) and SplitsTree. Like NJ, NeighborNet uses agglomeration: taxa are combined into progressively larger and larger overlapping clusters. Like SPLITSTREE, NeighborNet constructs networks rather than trees, and so can be used to represent multiple phylogenetic hypotheses simultaneously ... NeighborNet tends to produce networks that are substantially more resolved than those made with SPLITSTREE. The method is efficient ( O ( n 3) time) and is well suited for the preliminary analyses of complex phylogenetic data. \n Neighbor-Net provides a snapshot of the data that can guide more detailed analysis. Unlike split decomposition, Neighbor-Net scales well and can quickly produce detailed and informative networks for several hundred taxa.\n See https://doi.org/10.1093/molbev/msh018 , and  https://dl.acm.org/doi/10.5555/645907.673275",
       		"url": "https://en.wikipedia.org/wiki/Neighbor-net",
       		"args": [5],
       		"file_extension": "nex"
