@@ -6,7 +6,7 @@ on:
     tags:
       - '[0-9]*'
 env:
-  IMAGE_NAME: dhuniwien/stemweb_py37
+  IMAGE_NAME: dhuniwien/stemweb
 
 jobs:
   # Push bootstrap image to GitHub Packages.
