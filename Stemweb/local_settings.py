@@ -23,6 +23,14 @@ allowed_hosts = ['stemweb', 'localhost', '127.0.0.1']
 # Location of the Redis server for Stemweb
 redis_server = os.getenv("STEMWEB_REDIS", 'redis://redis:6379')
 
+# timeout of running calculations in seconds, after which they will be stopped 
+# in order to prevent endless running calculations
+# soft allows to cleanup something (close database connection)
+# hard just kills the process
+# 86400 seconds = 24 hours
+calculation_soft_timeout = int(os.getenv('CALC_SOFT_TIMEOUT', 86400))
+calculation_hard_timeout = int(os.getenv('CALC_HARD_TIMEOUT', 86460))
+
 # Local db admin name and email. Don't really need these
 # in local testing. But it's good to fill these, since
 # in some point in the future the site may try to send

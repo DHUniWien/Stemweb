@@ -45,7 +45,7 @@ STATUS_CODES = {
 	'not_started': -1,
 	'running': 1,
 	'finished': 0,
-	'failure': 2
+	'failure': 2	### also used for defined celery task timeout
 }
 
 

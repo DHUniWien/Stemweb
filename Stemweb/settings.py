@@ -27,6 +27,10 @@ DATABASES = {
     }
 }
 
+CELERY_TASK_SOFT_TIMEOUT = ls.calculation_soft_timeout
+CELERY_TASK_HARD_TIMEOUT = ls.calculation_hard_timeout
+
+
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.

@@ -17,14 +17,18 @@ from requests.exceptions import SSLError, HTTPError
 from .decorators import synchronized
 from django.template.defaultfilters import slugify
 from django.views.decorators.csrf import csrf_exempt
+from django.db.utils import OperationalError
 
 from celery import Task, shared_task
+from celery.exceptions import SoftTimeLimitExceeded, TimeLimitExceeded
 from Stemweb._celery import celery_app
 
-from django.db import connection, connections
+from django.db import connection, connections, close_old_connections
 
 #from Stemweb.algorithms.settings import ALGORITHM_MEDIA_ROOT as algo_media_root ###   ImportError    ="=
 import Stemweb.algorithms.settings 
+
+from Stemweb.settings import CELERY_TASK_SOFT_TIMEOUT, CELERY_TASK_HARD_TIMEOUT
 
 
 class Observer():
@@ -301,19 +305,20 @@ class AlgorithmTask(Task):
 		#raise Exception("ERROR: this is an INTENDED test case exception from AlgorithmTask level ")   ### a manual test case 
 		
 		# TODO: Fix me st000pid busy wait.  #### INSERTED BY PREVIOUS DEVELOPER
-		while self._stop.value == 0:
-			if not self._algorithm_thread.is_alive(): break
+		try:
+			while self._stop.value == 0:
+				if not self._algorithm_thread.is_alive(): break
 			self._read_from_results_()	
+		except SoftTimeLimitExceeded:
+			logging.warning('###  SoftTimeLimitExceeded during algorithm_thread.is_alive()-check ###')
+			raise	### re-raise the exception, i.e. let the exception propagate to the external_algorithm_run_error() errorback function,
+					### otherwise link_error won’t be called — because Celery sees a cought+handled exception as a successful task completion.
 
 		self._finalize_()		##  status can be being set either to 'finished' or to 'failure'
-		if self.algorithm_run.status == settings.STATUS_CODES['failure']:	### failure status was set during inherited classtask (e.g.: njc algorithm run)
-			request = exc = traceback = ''
-			algorun_extras_dictionary = json.loads(self.algorithm_run.extras)   ###  algorun.extras is of type unicode-string
-			return_host = algorun_extras_dictionary["return_host"]
-			return_path = algorun_extras_dictionary["return_path"]
-			### probably not needed here? ToDo!!! retest failure case (both scenarios: commented out or not)
-			#print '########### calling ext_algo_run_error NOT as errback #######################'
-			#external_algorithm_run_error(request, exc, traceback, self.algorithm_run.id, return_host, return_path)
+		
+		### probably not needed here!
+		#if self.algorithm_run.status == settings.STATUS_CODES['failure']:	### failure status was set during inherited classtask (e.g.: njc algorithm run)
+		#	raise ValueError(f'failure status was set during inherited classtask {self.algorithm_run.algorithm.name} .')
 
 		# Return newick as string for simplified callbacks of external runs.
 		if self.has_newick: 
@@ -436,65 +441,76 @@ class AlgorithmTask(Task):
 
 
 @shared_task	
-def external_algorithm_run_error(*args, run_id=None, return_host=None, return_path=None):	
-	''' Callback task in case external requested algorithm run fails.  
-		note these in *args packed arguments, handed over but NOT visible in the call execute_algorithm.py/external/call.apply_async(link_error = ....)
-		- args[0]:  various celery task request infos, e.g.:
-			stemweb_py37_1  | [2021-07-21 18:57:20,935: WARNING/MainProcess] <Context: {'lang': 'py', 'task': 'RHM', 'id': '9ab8f80e-d59e-4c9c-a171-72f112b37be6', 'shadow': None, 'eta': None, 'expires': None, 'group': None, 'group_index': None, 'retries': 0, 'timelimit': [None, None], 'root_id': '9ab8f80e-d59e-4c9c-a171-72f112b37be6', 'parent_id': None, 'argsrepr': '()', 'kwargsrepr': "{'run_args': {'imax': 1000000, 'infolder': '/home/stemweb/Stemweb/media/files/csv/20210721-185720-IPTMRYJA.csv', 'folder_url': 'results/runs/rhm/5/ZZLF7CT5'}, 'algorithm_run': 1}", 'origin': 'gen68@4eb7f48633ed', 'reply_to': 'b605934d-b5ea-3a17-b482-f80ff1486dec', 'correlation_id': '9ab8f80e-d59e-4c9c-a171-72f112b37be6', 'hostname': 'celery@4eb7f48633ed', 'delivery_info': {'exchange': '', 'routing_key': 'celery', 'priority': 0, 'redelivered': None}, 'args': [], 'kwargs': {'run_args': {'imax': 1000000, 'infolder': '/home/stemweb/Stemweb/media/files/csv/20210721-185720-IPTMRYJA.csv', 'folder_url': 'results/runs/rhm/5/ZZLF7CT5'}, 'algorithm_run': 1}, 'callbacks': [{'task': 'Stemweb.algorithms.tasks.external_algorithm_run_finished', 'args': [], 'kwargs': {'run_id': 1, 'return_host': 'stemmaweb.net:443', 'return_path': '/stemmaweb/stemweb/result'}, 'options': {}, 'subtask_type': None, 'immutable': False, 'chord_size': None}], 'errbacks': [{'task': 'Stemweb.algorithms.tasks.external_algorithm_run_error', 'args': [], 'kwargs': {'run_id': 1, 'return_host': 'stemmaweb.net:443', 'return_path': '/stemmaweb/stemweb/result'}, 'options': {}, 'subtask_type': None, 'immutable': False, 'chord_size': None}], 'chain': None, 'chord': None, '_children': []}>
-		- args[1]:  exception / error text, e.g.:
+def external_algorithm_run_error(request, exception, traceback, run_id=None, return_host=None, return_path=None):	
+	''' error Callback task in case external requested algorithm run fails.  
+		- request (task request object):  various celery task request infos, e.g.:
+			stemweb_1  | [2021-07-21 18:57:20,935: WARNING/MainProcess] <Context: {'lang': 'py', 'task': 'RHM', 'id': '9ab8f80e-d59e-4c9c-a171-72f112b37be6', 'shadow': None, 'eta': None, 'expires': None, 'group': None, 'group_index': None, 'retries': 0, 'timelimit': [None, None], 'root_id': '9ab8f80e-d59e-4c9c-a171-72f112b37be6', 'parent_id': None, 'argsrepr': '()', 'kwargsrepr': "{'run_args': {'imax': 1000000, 'infolder': '/home/stemweb/Stemweb/media/files/csv/20210721-185720-IPTMRYJA.csv', 'folder_url': 'results/runs/rhm/5/ZZLF7CT5'}, 'algorithm_run': 1}", 'origin': 'gen68@4eb7f48633ed', 'reply_to': 'b605934d-b5ea-3a17-b482-f80ff1486dec', 'correlation_id': '9ab8f80e-d59e-4c9c-a171-72f112b37be6', 'hostname': 'celery@4eb7f48633ed', 'delivery_info': {'exchange': '', 'routing_key': 'celery', 'priority': 0, 'redelivered': None}, 'args': [], 'kwargs': {'run_args': {'imax': 1000000, 'infolder': '/home/stemweb/Stemweb/media/files/csv/20210721-185720-IPTMRYJA.csv', 'folder_url': 'results/runs/rhm/5/ZZLF7CT5'}, 'algorithm_run': 1}, 'callbacks': [{'task': 'Stemweb.algorithms.tasks.external_algorithm_run_finished', 'args': [], 'kwargs': {'run_id': 1, 'return_host': 'stemmaweb.net:443', 'return_path': '/stemmaweb/stemweb/result'}, 'options': {}, 'subtask_type': None, 'immutable': False, 'chord_size': None}], 'errbacks': [{'task': 'Stemweb.algorithms.tasks.external_algorithm_run_error', 'args': [], 'kwargs': {'run_id': 1, 'return_host': 'stemmaweb.net:443', 'return_path': '/stemmaweb/stemweb/result'}, 'options': {}, 'subtask_type': None, 'immutable': False, 'chord_size': None}], 'chain': None, 'chord': None, '_children': []}>
+		- exception: error text, e.g.:
 			Worker exited prematurely: signal 11 (SIGSEGV) Job: 0.
 			or e.g.:
 			[Errno 2] No such file or directory: '/home/stemweb/Stemweb/media/results/runs/rhm/5/7OCRD3Y4/20210804-181608-BSBLR3EH_rhm.tre'
-		- args[2]: empty or Traceback, e.g:
-			stemweb_py37_1  | [2021-08-04 18:16:09,243: WARNING/ForkPoolWorker-3] Traceback (most recent call last):
-			stemweb_py37_1  |   File "/usr/local/lib/python3.7/site-packages/celery/app/trace.py", line 412, in trace_task
-			stemweb_py37_1  |     R = retval = fun(*args, **kwargs)
-			stemweb_py37_1  |   File "/usr/local/lib/python3.7/site-packages/celery/app/trace.py", line 704, in __protected_call__
-			stemweb_py37_1  |     return self.run(*args, **kwargs)
-			stemweb_py37_1  |   File "/home/stemweb/Stemweb/algorithms/tasks.py", line 318, in run
-			stemweb_py37_1  |     with open(self.newick_path, 'r') as f:
-			stemweb_py37_1  | FileNotFoundError: [Errno 2] No such file or directory: '/home/stemweb/Stemweb/media/results/runs/rhm/5/7OCRD3Y4/20210804-181608-BSBLR3EH_rhm.tre'
-
-			or None
+		- traceback: (may be empty/None) e.g:
+			stemweb_1  | Traceback (most recent call last):
+			stemweb_1  |   File "/usr/local/lib/python3.13/site-packages/celery/app/trace.py", line 453, in trace_task
+			stemweb_1  |     R = retval = fun(*args, **kwargs)
+			stemweb_1  |                  ~~~^^^^^^^^^^^^^^^^^
+			stemweb_1  |   File "/usr/local/lib/python3.13/site-packages/celery/app/trace.py", line 736, in __protected_call__
+			stemweb_1  |     return self.run(*args, **kwargs)
+			stemweb_1  |            ~~~~~~~~^^^^^^^^^^^^^^^^^
+			stemweb_1  |   File "/home/stemweb/Stemweb/algorithms/tasks.py", line 309, in run
+			stemweb_1  |     self._read_from_results_()
+			stemweb_1  |     ~~~~~~~~~~~~~~~~~~~~~~~~^^
+			stemweb_1  |   File "/home/stemweb/Stemweb/algorithms/tasks.py", line 390, in _read_from_results_
+			stemweb_1  |     while not self._results_queue.empty():
+			stemweb_1  |               ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+			stemweb_1  |   File "/usr/local/lib/python3.13/queue.py", line 123, in empty
+			stemweb_1  |     with self.mutex:
+			stemweb_1  |          ^^^^^^^^^^
+			stemweb_1  |   File "/usr/local/lib/python3.13/site-packages/billiard/pool.py", line 228, in soft_timeout_sighandler
+			stemweb_1  |     raise SoftTimeLimitExceeded()
 
 	'''
-	logging.warn ('######################## external algorithm run failed :-(( ################################')
-	logging.warn ('args[0]=', args[0], '+++++++++++++++++' )
-	logging.warn ('args[1]=', args[1], '+++++++++++++++++' )
-	#print ('args[2]=', args[2], '+++++++++++++++++' )
+	#logging.warning ('#### external algorithm run failed :-(( ####')
+
 	from Stemweb.algorithms.models import AlgorithmRun
 
 	try:
 		algorun = AlgorithmRun.objects.get(pk = run_id)			### django-DB connection can be lost after errors in RHM c-extension 
 	except OperationalError:
-		logging.warn ('\n ############ close and restore damaged DB connections #############\n')
-		for conn in connections.all():
-			conn.close_if_unusable_or_obsolete()			### close damaged DB connections
+		logging.warning ('\n ### close and restore damaged DB connections ###\n')
+		connection.close_if_unusable_or_obsolete()			### close damaged DB connection
 
 		#cursor = connection.cursor()	### Will result in: jango.db.utils.InterfaceError: connection already closed
 		
-		connection.cursor().execute('SELECT 1;')			### restore DB connections
+		connection.cursor().execute('SELECT 1;')			### restore DB connection
 
 		### get object again from DB:
 		algorun = AlgorithmRun.objects.get(pk = run_id)
 
-	if algorun.status == settings.STATUS_CODES['running']:
-		error_message = args[1]
-		#print (error_message)
-		algorun.status = settings.STATUS_CODES['failure']
-		algorun.error_msg = error_message   ### for later usage in algorithms/views.py/jobstatus()
-	else:									### else: status 'failure' was already set during njc-run
-		error_message = algorun.error_msg
+	if isinstance(exception, SoftTimeLimitExceeded):
+		error_message = (f"Soft timeout limit of {CELERY_TASK_SOFT_TIMEOUT} secs exceeded for jobid {run_id} with algorithm {algorun.algorithm.name}; gracefully stopping task and closing DB connection")
+		connection.close()  # closes this task’s database connection
+	elif isinstance(exception, TimeLimitExceeded):
+		error_message = (f"Hard timeout limit of {CELERY_TASK_HARD_TIMEOUT} secs exceeded for jobid {run_id}; task is stopped")
+	else: # other, not timeout related exception:
+		error_message = (f"algorithm run failed: {exception}")
+		connection.close()
 
+	if algorun.status == settings.STATUS_CODES['running']:
+		algorun.status = settings.STATUS_CODES['failure']
+	#logging.error (f'### the statusCode of the failed/timed-out calculation= {algorun.status}, error message ={error_message} ###')
+
+	algorun.error_msg = error_message		### needed for (later) jobstatus request
+	algorun.result = error_message
 	algorun.end_time = datetime.datetime.now()
 	algorun.save()
-	
+
 	ret = {
 		'jobid': run_id,
 		'statuscode': algorun.status,
-		#'algorithm': algorun.algorithm.name,
-		#'start_time': str(algorun.start_time),
-		##'end_time': str(algorun.end_time),
+		'algorithm': algorun.algorithm.name,
+		'start_time': str(algorun.start_time),
+		'end_time': str(algorun.end_time),
 		'result': error_message
 		}
 	
@@ -505,22 +521,27 @@ def external_algorithm_run_error(*args, run_id=None, return_host=None, return_pa
 		pass
 
 	
-	# Does the return host have a schema defined?
 	targeturl = return_host + return_path
-	EXPLICIT_SCHEMA = return_host.startswith('https://') or return_host.startswith('http://')
-	if EXPLICIT_SCHEMA:
-		r = requests.post(targeturl, json=ret)
+
+	if targeturl == "client:8001/result":   ##  if targeturl is the development testing client
+		## we want to avoid a "Bad request version"-message on testing client side, hence don't try https-schema, but just use http-schema
+		r = requests.post('http://%s' % targeturl, json=ret)
 	else:
-		# We will have to try both
-		try:
-			r = requests.post('https://%s' % targeturl, json=ret)
-		except SSLError:
-			r = requests.post('http://%s' % targeturl, json=ret)
+		# Does the return host have a schema defined?
+		EXPLICIT_SCHEMA = return_host.startswith('https://') or return_host.startswith('http://')
+		if EXPLICIT_SCHEMA:
+			r = requests.post(targeturl, json=ret)
+		else:
+			# We will have to try both
+			try:
+				r = requests.post('https://%s' % targeturl, json=ret)
+			except SSLError:
+				r = requests.post('http://%s' % targeturl, json=ret)
 
 	try: 
 		r.raise_for_status()
 	except HTTPError as e:
-		logging.warn("Attempt to return response to %s got an error: %s" % (targeturl, e.message))
+		logging.warning("Attempt to return response to %s got an error: %s" % (targeturl, e.message))
 
 
 @shared_task
@@ -582,7 +603,7 @@ def external_algorithm_run_finished(*args, run_id=None, return_host=None, return
 	
 	targeturl = return_host + return_path
 	if targeturl == "client:8001/result":   ##  if targeturl is the development testing client
-		## we want to avoid a "Bad request version"-message on client side, hence don't try https-schema, but just use http-schema
+		## we want to avoid a "Bad request version"-message on testing client side, hence don't try https-schema, but just use http-schema
 		r = requests.post('http://%s' % targeturl, json=ret)
 	else:
 		# Does the return host have a schema defined?
@@ -599,7 +620,7 @@ def external_algorithm_run_finished(*args, run_id=None, return_host=None, return
 	try: 
 		r.raise_for_status()
 	except HTTPError:
-		logging.warn("Attempt to return response to %s got an error: %d %s" % (targeturl, r.status_code, r.text))
+		logging.error("Attempt to return response to %s got an error: %d %s" % (targeturl, r.status_code, r.text))
 
 
 class ClassBasedAddingTask(Task):

@@ -190,7 +190,7 @@ def jobstatus(request, run_id):
 		algo_run = AlgorithmRun.objects.get_or_none(pk = run_id)
 		if algo_run is None or not algo_run.external: 		
 		#if algo_run is None: 						###  temporarily removed external check to enable access via REST-API (JSON) for test purpose
-			error_message = json.dumps({'Information': f"No algorithm run with job-id {run_id} is stored in the database. (Either not calculated or the database was cleaned up {sttng.KEEP_RESULTS_DAYS} days after the calculation of this job-id.)"})
+			error_message = json.dumps({'Information': f"No algorithm run with job-id {run_id} is stored in the database. (Either not calculated or the database was cleaned up {sttng.KEEP_RESULTS_DAYS} days or later after the calculation of this job-id.)"})
 			response = HttpResponse(error_message)
 			response.status_code = 200
 			return response

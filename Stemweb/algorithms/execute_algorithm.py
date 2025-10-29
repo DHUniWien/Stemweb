@@ -25,6 +25,7 @@ from inspect import signature as signat
 from .reformat import re_format
 from copy import deepcopy
 from pathlib import Path
+from Stemweb.settings import CELERY_TASK_SOFT_TIMEOUT, CELERY_TASK_HARD_TIMEOUT
 
 def validate_nexusmatrix(matrix_block):
 
@@ -292,8 +293,14 @@ def external(json_data, algo_id, request):
 	#  If the tasks fails then the errorback (using the link_error argument) is called
 	#  Any arguments you add to a signature, will be prepended to the arguments specified by the signature itself!
 
+	#print(f'########### CELERY_TASK_SOFT_TIMEOUT={CELERY_TASK_SOFT_TIMEOUT}########### ')
+	#print(f'########### CELERY_TASK_HARD_TIMEOUT={CELERY_TASK_HARD_TIMEOUT}########### ')
+
+
 	if format_error == None:
 		inherited_AlgorithmTask.apply_async(kwargs = kwargs,
+				soft_time_limit=CELERY_TASK_SOFT_TIMEOUT, 
+				time_limit=CELERY_TASK_HARD_TIMEOUT,
 				link = external_algorithm_run_finished.signature(kwargs = {'run_id': rid, 'return_host': return_host , 'return_path': return_path}, options={}),
 				link_error = external_algorithm_run_error.signature(kwargs = {'run_id': rid, 'return_host': return_host , 'return_path': return_path}, options={}))
 
@@ -302,7 +309,7 @@ def external(json_data, algo_id, request):
 		current_run.error_msg = format_error
 		current_run.status = settings.STATUS_CODES['failure']
 		current_run.save()
-		external_algorithm_run_error(None, format_error, run_id=rid, return_host=return_host, return_path=return_path)
+		external_algorithm_run_error(request=None, exception=format_error, traceback=None, run_id=rid, return_host=return_host, return_path=return_path)
 
 
 	sleep(0.3)	### needed for correct setting of task status ; seems to be a timing problem
