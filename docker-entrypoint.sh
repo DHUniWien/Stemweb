@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -e  # exit immediately if any command fails.
+echo "############### ENTRYPOINT HIT — $(date) ###################"
+echo "######### Using python from PATH: $(which python)"
+python -V
+
 cd /home/stemweb
 # Wait for the database if necessary
 if [ -n "${STEMWEB_DBHOST}" ]; then

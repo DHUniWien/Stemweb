@@ -10,6 +10,17 @@ scipy
 importlib-metadata
 requests
 
-# For drawing newicks
+pyopenssl
+ndg-httpsclient
+pyasn1
+rpy2
+pygraphviz
+djangorestframework
+mysqlclient
+
+# For drawing newicks:
 biopython
+
+# for debugging:
+ptvsd
 

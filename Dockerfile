@@ -13,7 +13,6 @@ RUN apt-get update && apt-get -y install graphviz libgraphviz-dev pkg-config wge
 # with debugging tools:
 #RUN apt-get update && apt-get -y install graphviz libgraphviz-dev pkg-config wget libffi-dev libssl-dev r-base-core curl vim tree python3-dev sed gawk sudo gdb gcc gdbserver
 RUN pip install -U setuptools
-RUN pip install pyopenssl ndg-httpsclient pyasn1 rpy2 mysqlclient ptvsd pygraphviz pymysql djangorestframework
 
 #===================== install requirements ============================
 COPY Stemweb/requirements/requirements.txt requirements.txt
