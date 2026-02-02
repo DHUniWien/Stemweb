@@ -10,7 +10,10 @@ ALGO_MAP = {'01_rhm': 'RHM',
             '02_nj_mtxnok': 'Neighbour Joining', 
             '03_nnet': 'Neighbour Net',
             '04_do_rhm': 'RHM',
-            '05_do_nj': 'Neighbour Joining'
+            '04_do_rhm_dev': 'RHM',
+            '05_do_nj': 'Neighbour Joining',
+            '05_do_nj_dev': 'Neighbour Joining',
+            '06_rhm_dev_neverending': 'RHM', 
             }
 
 # Check that we are up

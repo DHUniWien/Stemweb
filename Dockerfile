@@ -1,6 +1,4 @@
-# install everything based on image "python:3.13"
-
-FROM python:3.13
+FROM python:3.14
 ENV DEBIAN_FRONTEND=noninteractive
 
 #========== create the technical user "stemweb" with sudo-right  =======
