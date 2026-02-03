@@ -38,7 +38,7 @@ jobs:
     - name: Wait for app to start
       run: |
            for i in {1..40}; do
-             curl -s idp:8000 && break
+             curl -s stemweb:8000 && break
              echo "Waiting..."
              sleep 1
            done   
