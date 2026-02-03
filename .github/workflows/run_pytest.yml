@@ -25,7 +25,7 @@ jobs:
           echo "STEMWEB_DBENGINE=mysql" >> .env
           echo "STEMWEB_DBNAME=stemwebdb_v1" >> .env
           echo "STEMWEB_DBUSER=stemweb" >> .env
-          echo "STEMWEB_DBPASSW=ChangeIt" >> .env
+          echo "STEMWEB_DBPASS=ChangeIt" >> .env
           echo "STEMWEB_DBHOST=mysql" >> .env
           echo "STEMWEB_DBPORT=3306" >> .env
           echo "STEMWEB_SECRET_KEY=someth1ngNotTr1via!" >> .env
