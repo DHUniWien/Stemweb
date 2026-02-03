@@ -1,0 +1,47 @@
+name: pytests in Docker-compose Actions Workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build the Docker images
+      run: docker compose build
+
+    - name: Create .env file
+      run: |
+          echo "STEMWEB_REDIS=redis://redis:6379" >> .env
+          echo "STEMWEB_DBENGINE=mysql" >> .env
+          echo "STEMWEB_DBNAME=stemwebdb_v1" >> .env
+          echo "STEMWEB_DBUSER=stemweb" >> .env
+          echo "STEMWEB_DBPASSW=ChangeIt" >> .env
+          echo "STEMWEB_DBHOST=mysql" >> .env
+          echo "STEMWEB_DBPORT=3306" >> .env
+          echo "STEMWEB_SECRET_KEY=someth1ngNotTr1via!" >> .env
+          echo "CALC_HARD_TIMEOUT=120" >> .env
+          echo "CALC_SOFT_TIMEOUT=60" >> .env
+    
+    - name: Start the Docker containers
+      run: docker compose --profile testing up -d
+
+    - name: Wait for app to start
+      run: |
+           for i in {1..40}; do
+             curl -s idp:8000 && break
+             echo "Waiting..."
+             sleep 1
+           done   
+    
+    - name: Test with pytest executed within testing client container
+      run: docker exec stemweb-client-1 pytest -v test_stemweb.py
