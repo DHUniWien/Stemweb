@@ -29,8 +29,8 @@ jobs:
           echo "STEMWEB_DBHOST=mysql" >> .env
           echo "STEMWEB_DBPORT=3306" >> .env
           echo "STEMWEB_SECRET_KEY=someth1ngNotTr1via!" >> .env
-          echo "CALC_HARD_TIMEOUT=120" >> .env
-          echo "CALC_SOFT_TIMEOUT=60" >> .env
+          echo "CALC_HARD_TIMEOUT=40" >> .env
+          echo "CALC_SOFT_TIMEOUT=30" >> .env
     
     - name: Start the Docker containers
       run: docker compose --profile testing up -d
