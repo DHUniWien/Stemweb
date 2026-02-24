@@ -440,6 +440,7 @@ class AlgorithmTask(Task):
 			o.update(self)
 
 
+#def external_algorithm_run_error(*args, run_id=None, return_host=None, return_path=None):	
 @shared_task	
 def external_algorithm_run_error(request, exception, traceback, run_id=None, return_host=None, return_path=None):	
 	''' error Callback task in case external requested algorithm run fails.  
@@ -492,13 +493,15 @@ def external_algorithm_run_error(request, exception, traceback, run_id=None, ret
 		connection.close()  # closes this task’s database connection
 	elif isinstance(exception, TimeLimitExceeded):
 		error_message = (f"Hard timeout limit of {CELERY_TASK_HARD_TIMEOUT} secs exceeded for jobid {run_id}; task is stopped")
+		algorun.status = settings.STATUS_CODES['timeout']	
+		#logging.error (f'### the statusCode of the timed-out calculation= {algorun.status}, error message ={error_message} ###')
+	
 	else: # other, not timeout related exception:
 		error_message = (f"algorithm run failed: {exception}")
 		connection.close()
-
-	if algorun.status == settings.STATUS_CODES['running']:
-		algorun.status = settings.STATUS_CODES['failure']
-	#logging.error (f'### the statusCode of the failed/timed-out calculation= {algorun.status}, error message ={error_message} ###')
+		if algorun.status == settings.STATUS_CODES['running']:
+			algorun.status = settings.STATUS_CODES['failure']
+		#logging.error (f'### the statusCode of the failed calculation= {algorun.status}, error message ={error_message} ###')
 
 	algorun.error_msg = error_message		### needed for (later) jobstatus request
 	algorun.result = error_message
