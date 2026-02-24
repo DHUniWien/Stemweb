@@ -40,6 +40,7 @@ services:
             - stemweb
         volumes:
             - ./client:/src/app
+            - /var/run/docker.sock:/var/run/docker.sock     # needed to read Docker logs from within this client (used in test_stemweb.py)
         ports:
             - "127.0.0.1:8001:8001"
         profiles:

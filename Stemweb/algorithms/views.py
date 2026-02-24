@@ -259,6 +259,9 @@ def jobstatus(request, run_id):
 		elif algo_run.status == STATUS_CODES['not_started']:
 			msg['result'] = "The requested calculation is not yet started"
 			return HttpResponse(json.dumps(msg))
+		elif algo_run.status == STATUS_CODES['timeout']:
+			msg['result'] = "The requested calculation did not finish before the defined timeout, hence it was stopped and no result is available"
+			return HttpResponse(json.dumps(msg))
 		else:
 			logging.warn(f'################# Unknown algo_run.status {algo_run.status}')
 			msg['result'] = f"Unknown algo_run.status {algo_run.status}"
